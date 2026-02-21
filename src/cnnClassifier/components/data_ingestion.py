@@ -12,6 +12,35 @@ from cnnClassifier.entity.config_entity import DataIngestionConfig
 _DATASET_DIR_NAME = "kidney-ct-scan-dataset"
 
 
+def _find_class_root(directory: str) -> str:
+    """Walk *directory* downward until we reach the folder whose
+    sub-directories are the image class folders.
+
+    Heuristic: a directory contains class folders when it has **two or more**
+    immediate sub-directories (and those look like leaf class dirs, i.e. they
+    contain image files directly).
+
+    Returns the first such directory found in BFS order, or *directory* if
+    nothing better is found.
+    """
+    from collections import deque
+    queue = deque([directory])
+    while queue:
+        current = queue.popleft()
+        try:
+            subdirs = [
+                d for d in os.listdir(current)
+                if os.path.isdir(os.path.join(current, d))
+            ]
+        except PermissionError:
+            continue
+        if len(subdirs) >= 2:
+            return current
+        for sd in subdirs:
+            queue.append(os.path.join(current, sd))
+    return directory
+
+
 def _kaggle_cli() -> str:
     """Return the absolute path to the kaggle CLI in the current venv."""
     scripts_dir = os.path.dirname(sys.executable)
@@ -68,21 +97,10 @@ class DataIngestion:
         with zipfile.ZipFile(zip_path, "r") as zf:
             zf.extractall(tmp_extract)
 
-        # The extracted content may have a top-level folder or the class
-        # dirs directly.  Detect and normalise.
-        contents = [
-            d for d in os.listdir(tmp_extract)
-            if os.path.isdir(os.path.join(tmp_extract, d))
-        ]
-        source = tmp_extract
-        if len(contents) == 1:
-            candidate = os.path.join(tmp_extract, contents[0])
-            inner = [
-                d for d in os.listdir(candidate)
-                if os.path.isdir(os.path.join(candidate, d))
-            ]
-            if len(inner) >= 2:
-                source = candidate
+        # Walk the extracted tree to find the directory that contains the
+        # class subdirectories, regardless of how deeply it is nested.
+        source = _find_class_root(tmp_extract)
+        logger.info(f"Using class root: {source}")
 
         os.makedirs(dest_dir, exist_ok=True)
         shutil.copytree(source, dest_dir, dirs_exist_ok=True)
@@ -101,9 +119,10 @@ class DataIngestion:
         Each fold has its own train/ and val/ subdirectories.
         The 'all' directory contains every image for final-model training.
         """
-        source_dir = os.path.join(
-            str(self.config.unzip_dir), _DATASET_DIR_NAME
-        )
+        raw_dir = os.path.join(str(self.config.unzip_dir), _DATASET_DIR_NAME)
+        # Drill down to the actual class-folder level (handles double-nesting)
+        source_dir = _find_class_root(raw_dir)
+        logger.info(f"K-fold source directory: {source_dir}")
         folds_dir = os.path.join(str(self.config.unzip_dir), "folds")
         all_dir = os.path.join(str(self.config.unzip_dir), "all")
 

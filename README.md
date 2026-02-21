@@ -40,8 +40,10 @@
 This is a **production-ready Deep Learning application** for classifying kidney diseases from CT scan images using Convolutional Neural Networks (CNN). The project demonstrates a complete ML workflow including data ingestion, model training, evaluation, and deployment with proper experiment tracking and data versioning.
 
 ### **Disease Classification Categories:**
-- **Diseased Kidney** (Pathological)
-- **Normal Kidney** (Healthy)
+- **Cyst**
+- **Normal**
+- **Stone**
+- **Tumor**
 
 ---
 
@@ -228,8 +230,20 @@ Kidney-Disease-Classification-System/
 ### **STEP 1: Clone the Repository**
 
 ```bash
-git clone https://github.com/krishnaik06/Kidney-Disease-Classification-Deep-Learning-Project
+git clone https://github.com/saksham-1304/Kidney-Disease-Classification-System.git
 cd Kidney-Disease-Classification-System
+```
+
+### **Colab Quick Start (Recommended for GPU training)**
+
+Use the notebook [colab_training.ipynb](colab_training.ipynb) to run the pipeline on Google Colab GPU.
+
+```bash
+# In Colab (after cloning repo)
+python src/cnnClassifier/pipeline/stage_01_data_ingestion.py
+python src/cnnClassifier/pipeline/stage_02_prepare_base_model.py
+python src/cnnClassifier/pipeline/stage_03_model_training.py
+python src/cnnClassifier/pipeline/stage_04_model_evaluation.py
 ```
 
 ### **STEP 2: Create Conda Environment**

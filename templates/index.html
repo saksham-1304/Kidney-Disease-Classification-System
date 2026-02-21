@@ -214,7 +214,7 @@
 				success: function (res) {
 					var label = res[0].image;
 					$('#resultLabel').text(label)
-						.removeClass('normal tumor')
+						.removeClass('normal tumor cyst stone')
 						.addClass(label.toLowerCase());
 					$('#resultPlaceholder').hide();
 					$('#resultContent').show();

@@ -165,3 +165,4 @@ model/
 report/
 .dvc/cache/
 .dvc/tmp/
+mlruns/
