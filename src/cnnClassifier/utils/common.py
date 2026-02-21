@@ -4,11 +4,20 @@ import yaml
 from cnnClassifier import logger
 import json
 import joblib
-from ensure import ensure_annotations
 from box import ConfigBox
 from pathlib import Path
 from typing import Any
 import base64
+
+try:
+    from ensure import ensure_annotations
+except Exception:
+    def ensure_annotations(func=None, *args, **kwargs):
+        if func is None:
+            def decorator(inner_func):
+                return inner_func
+            return decorator
+        return func
 
 
 
