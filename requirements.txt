@@ -15,5 +15,5 @@ types-PyYAML
 scipy
 Flask
 Flask-Cors
-gdown
+kaggle
 -e .

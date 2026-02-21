@@ -4,8 +4,11 @@ stages:
     deps:
       - src/cnnClassifier/pipeline/stage_01_data_ingestion.py
       - config/config.yaml
+    params:
+      - K_FOLDS
     outs:
-      - artifacts/data_ingestion/kidney-ct-scan-image
+      - artifacts/data_ingestion/folds
+      - artifacts/data_ingestion/all
 
 
   prepare_base_model:
@@ -28,15 +31,17 @@ stages:
     deps:
       - src/cnnClassifier/pipeline/stage_03_model_training.py
       - config/config.yaml
-      - artifacts/data_ingestion/kidney-ct-scan-image
+      - artifacts/data_ingestion/folds
+      - artifacts/data_ingestion/all
       - artifacts/prepare_base_model
     params:
       - IMAGE_SIZE
       - EPOCHS
       - BATCH_SIZE
       - AUGMENTATION
+      - K_FOLDS
     outs:
-      - artifacts/training/model.h5
+      - artifacts/training
 
 
   evaluation:
@@ -44,11 +49,12 @@ stages:
     deps:
       - src/cnnClassifier/pipeline/stage_04_model_evaluation.py
       - config/config.yaml
-      - artifacts/data_ingestion/kidney-ct-scan-image
-      - artifacts/training/model.h5
+      - artifacts/data_ingestion/folds
+      - artifacts/training
     params:
       - IMAGE_SIZE
       - BATCH_SIZE
+      - K_FOLDS
     metrics:
     - scores.json:
         cache: false

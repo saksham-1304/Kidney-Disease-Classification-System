@@ -1,10 +1,11 @@
 from cnnClassifier.constants import *
-import os
-from cnnClassifier.utils.common import read_yaml, create_directories,save_json
-from cnnClassifier.entity.config_entity import (DataIngestionConfig,
-                                                PrepareBaseModelConfig,
-                                                TrainingConfig,
-                                                EvaluationConfig)
+from cnnClassifier.utils.common import read_yaml, create_directories
+from cnnClassifier.entity.config_entity import (
+    DataIngestionConfig,
+    PrepareBaseModelConfig,
+    TrainingConfig,
+    EvaluationConfig,
+)
 
 
 class ConfigurationManager:
@@ -29,7 +30,8 @@ class ConfigurationManager:
             root_dir=config.root_dir,
             source_URL=config.source_URL,
             local_data_file=config.local_data_file,
-            unzip_dir=config.unzip_dir 
+            unzip_dir=config.unzip_dir,
+            params_k_folds=self.params.K_FOLDS
         )
 
         return data_ingestion_config
@@ -62,7 +64,7 @@ class ConfigurationManager:
         training = self.config.training
         prepare_base_model = self.config.prepare_base_model
         params = self.params
-        training_data = os.path.join(self.config.data_ingestion.unzip_dir, "kidney-ct-scan-image")
+        training_data = self.config.data_ingestion.unzip_dir  # data root with folds/ and all/
         create_directories([
             Path(training.root_dir)
         ])
@@ -75,7 +77,8 @@ class ConfigurationManager:
             params_epochs=params.EPOCHS,
             params_batch_size=params.BATCH_SIZE,
             params_is_augmentation=params.AUGMENTATION,
-            params_image_size=params.IMAGE_SIZE
+            params_image_size=params.IMAGE_SIZE,
+            params_k_folds=params.K_FOLDS
         )
 
         return training_config
@@ -85,11 +88,12 @@ class ConfigurationManager:
     def get_evaluation_config(self) -> EvaluationConfig:
         eval_config = EvaluationConfig(
             path_of_model="artifacts/training/model.h5",
-            training_data="artifacts/data_ingestion/kidney-ct-scan-image",
+            data_root="artifacts/data_ingestion",
             mlflow_uri="https://dagshub.com/entbappy/Kidney-Disease-Classification-MLflow-DVC.mlflow",
             all_params=self.params,
             params_image_size=self.params.IMAGE_SIZE,
-            params_batch_size=self.params.BATCH_SIZE
+            params_batch_size=self.params.BATCH_SIZE,
+            params_k_folds=self.params.K_FOLDS
         )
         return eval_config
 
