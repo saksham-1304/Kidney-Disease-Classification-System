@@ -40,6 +40,7 @@ stages:
       - BATCH_SIZE
       - AUGMENTATION
       - K_FOLDS
+      - LEARNING_RATE
     outs:
       - artifacts/training
 

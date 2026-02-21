@@ -43,6 +43,12 @@
 			overflow: hidden;
 			background: #fff;
 			cursor: pointer;
+			transition: border-color 0.2s, background-color 0.2s;
+		}
+
+		.preview-box.dragover {
+			border-color: #1b2d6b;
+			background-color: #e8ecf8;
 		}
 
 		.preview-box img {
@@ -180,6 +186,28 @@
 		$('#uload').click(function () { $('#fileinput').click(); });
 
 		$('#previewBox').click(function () { $('#fileinput').click(); });
+
+		// Drag-and-drop support
+		var box = document.getElementById('previewBox');
+		box.addEventListener('dragover', function (e) {
+			e.preventDefault();
+			e.stopPropagation();
+			box.classList.add('dragover');
+		});
+		box.addEventListener('dragleave', function (e) {
+			e.preventDefault();
+			e.stopPropagation();
+			box.classList.remove('dragover');
+		});
+		box.addEventListener('drop', function (e) {
+			e.preventDefault();
+			e.stopPropagation();
+			box.classList.remove('dragover');
+			if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+				$('#fileinput')[0].files = e.dataTransfer.files;
+				$('#fileinput').trigger('change');
+			}
+		});
 
 		$('#fileinput').change(function () {
 			if (this.files && this.files[0]) {

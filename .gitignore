@@ -162,7 +162,11 @@ cython_debug/
 artifacts/
 logs/
 model/
-report/
 .dvc/cache/
 .dvc/tmp/
 mlruns/
+scores.json
+inputImage.jpg
+requirements_colab.txt
+trained_outputs.zip
+report/

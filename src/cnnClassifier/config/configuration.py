@@ -87,10 +87,11 @@ class ConfigurationManager:
 
 
     def get_evaluation_config(self) -> EvaluationConfig:
+        config = self.config.evaluation
         eval_config = EvaluationConfig(
-            path_of_model="artifacts/training/model.h5",
-            data_root="artifacts/data_ingestion",
-            mlflow_uri="https://dagshub.com/entbappy/Kidney-Disease-Classification-MLflow-DVC.mlflow",
+            path_of_model=config.path_of_model,
+            data_root=config.data_root,
+            mlflow_uri=config.mlflow_uri,
             all_params=self.params,
             params_image_size=self.params.IMAGE_SIZE,
             params_batch_size=self.params.BATCH_SIZE,
