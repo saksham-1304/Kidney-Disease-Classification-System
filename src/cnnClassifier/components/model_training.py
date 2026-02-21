@@ -13,11 +13,22 @@ class Training:
     def _enable_eager_compat():
         tf.config.run_functions_eagerly(True)
 
+    def _compile_model(self):
+        self.model.compile(
+            optimizer=tf.keras.optimizers.Adam(
+                learning_rate=self.config.params_learning_rate
+            ),
+            loss=tf.keras.losses.CategoricalCrossentropy(),
+            metrics=["accuracy"]
+        )
+
     def get_base_model(self):
         """Load a fresh copy of the compiled base model."""
         self.model = tf.keras.models.load_model(
-            self.config.updated_base_model_path
+            self.config.updated_base_model_path,
+            compile=False
         )
+        self._compile_model()
 
     @staticmethod
     def save_model(path: Path, model: tf.keras.Model):
