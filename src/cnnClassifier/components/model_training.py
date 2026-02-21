@@ -9,6 +9,10 @@ class Training:
     def __init__(self, config: TrainingConfig):
         self.config = config
 
+    @staticmethod
+    def _enable_eager_compat():
+        tf.config.run_functions_eagerly(True)
+
     def get_base_model(self):
         """Load a fresh copy of the compiled base model."""
         self.model = tf.keras.models.load_model(
@@ -66,6 +70,7 @@ class Training:
     def _train_fold(self, train_dir, val_dir, model_save_path):
         """Train on one k-fold split (separate train / val directories)."""
         tf.keras.backend.clear_session()
+        self._enable_eager_compat()
         self.get_base_model()
 
         val_datagen = tf.keras.preprocessing.image.ImageDataGenerator(
@@ -108,6 +113,7 @@ class Training:
         """Train the final (deployable) model on ALL data with an internal
         80/20 split used only for EarlyStopping / ReduceLROnPlateau."""
         tf.keras.backend.clear_session()
+        self._enable_eager_compat()
         self.get_base_model()
 
         split_kwargs = dict(rescale=1./255, validation_split=0.20)
