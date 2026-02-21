@@ -1,5 +1,6 @@
 import os
 import tensorflow as tf
+import numpy as np
 from pathlib import Path
 from cnnClassifier import logger
 from cnnClassifier.entity.config_entity import TrainingConfig
@@ -61,6 +62,22 @@ class Training:
             )
         ]
 
+    @staticmethod
+    def _compute_class_weights(generator):
+        class_counts = np.bincount(generator.classes)
+        non_zero = class_counts > 0
+        num_classes = int(non_zero.sum())
+        total_samples = int(class_counts.sum())
+
+        class_weight = {}
+        for class_idx, count in enumerate(class_counts):
+            if count > 0:
+                class_weight[class_idx] = total_samples / (num_classes * count)
+            else:
+                class_weight[class_idx] = 0.0
+
+        return class_weight
+
     def _get_train_datagen(self):
         """Return an ImageDataGenerator (with or without augmentation)."""
         if self.config.params_is_augmentation:
@@ -109,13 +126,17 @@ class Training:
             f"({train_gen.samples} train, {val_gen.samples} val images)"
         )
 
+        class_weight = self._compute_class_weights(train_gen)
+        logger.info(f"Using class weights: {class_weight}")
+
         self.model.fit(
             train_gen,
             epochs=self.config.params_epochs,
             steps_per_epoch=steps,
             validation_steps=val_steps,
             validation_data=val_gen,
-            callbacks=self._get_callbacks()
+            callbacks=self._get_callbacks(),
+            class_weight=class_weight
         )
 
         self.save_model(path=model_save_path, model=self.model)
@@ -169,13 +190,17 @@ class Training:
             f"({train_gen.samples} train, {val_gen.samples} val images)"
         )
 
+        class_weight = self._compute_class_weights(train_gen)
+        logger.info(f"Using class weights (final): {class_weight}")
+
         self.model.fit(
             train_gen,
             epochs=self.config.params_epochs,
             steps_per_epoch=steps,
             validation_steps=val_steps,
             validation_data=val_gen,
-            callbacks=self._get_callbacks()
+            callbacks=self._get_callbacks(),
+            class_weight=class_weight
         )
 
         self.save_model(path=model_save_path, model=self.model)
