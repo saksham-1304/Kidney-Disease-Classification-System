@@ -31,10 +31,12 @@ class Training:
             logger.warning("No GPU detected. Training on CPU (slow).")
             return None
 
-    def _compile_model(self, strategy=None):
+    def _build_and_compile(self, model_path: str, strategy) -> tf.keras.Model:
+        """Load model and compile — both inside strategy.scope() if multi-GPU."""
         if strategy:
             with strategy.scope():
-                self.model.compile(
+                model = tf.keras.models.load_model(model_path, compile=False)
+                model.compile(
                     optimizer=tf.keras.optimizers.Adam(
                         learning_rate=self.config.params_learning_rate
                     ),
@@ -42,21 +44,27 @@ class Training:
                     metrics=["accuracy"]
                 )
         else:
-            self.model.compile(
+            model = tf.keras.models.load_model(model_path, compile=False)
+            model.compile(
                 optimizer=tf.keras.optimizers.Adam(
                     learning_rate=self.config.params_learning_rate
                 ),
                 loss=tf.keras.losses.CategoricalCrossentropy(),
                 metrics=["accuracy"]
             )
+        return model
+
+    def _compile_model(self, strategy=None):
+        """Re-compile self.model (used only when model is already loaded)."""
+        self.model = self._build_and_compile(
+            str(self.config.updated_base_model_path), strategy
+        )
 
     def get_base_model(self, strategy=None):
-        """Load a fresh copy of the compiled base model."""
-        self.model = tf.keras.models.load_model(
-            self.config.updated_base_model_path,
-            compile=False
+        """Load a fresh copy of the base model and compile it."""
+        self.model = self._build_and_compile(
+            str(self.config.updated_base_model_path), strategy
         )
-        self._compile_model(strategy=strategy)
 
     @staticmethod
     def save_model(path: Path, model: tf.keras.Model):
@@ -205,8 +213,7 @@ class Training:
                 f"Fold already trained ({completed_epochs} epochs). "
                 f"Finalizing from checkpoint: {resume_model_path}"
             )
-            finalized_model = tf.keras.models.load_model(resume_model_path, compile=False)
-            self._compile_model_for_model(finalized_model, strategy=strategy)
+            finalized_model = self._build_and_compile(resume_model_path, strategy)
             self.save_model(path=model_save_path, model=finalized_model)
             return
 
@@ -218,8 +225,7 @@ class Training:
                 f"Resuming fold from epoch {completed_epochs}/{self.config.params_epochs}: "
                 f"{resume_model_path}"
             )
-            self.model = tf.keras.models.load_model(resume_model_path, compile=False)
-            self._compile_model(strategy=strategy)
+            self.model = self._build_and_compile(resume_model_path, strategy)
         else:
             self.get_base_model(strategy=strategy)
 
@@ -280,8 +286,7 @@ class Training:
                 f"Final model already trained ({completed_epochs} epochs). "
                 f"Finalizing from checkpoint: {resume_model_path}"
             )
-            finalized_model = tf.keras.models.load_model(resume_model_path, compile=False)
-            self._compile_model_for_model(finalized_model, strategy=strategy)
+            finalized_model = self._build_and_compile(resume_model_path, strategy)
             self.save_model(path=model_save_path, model=finalized_model)
             return
 
@@ -293,8 +298,7 @@ class Training:
                 f"Resuming final model from epoch {completed_epochs}/{self.config.params_epochs}: "
                 f"{resume_model_path}"
             )
-            self.model = tf.keras.models.load_model(resume_model_path, compile=False)
-            self._compile_model(strategy=strategy)
+            self.model = self._build_and_compile(resume_model_path, strategy)
         else:
             self.get_base_model(strategy=strategy)
 
@@ -381,22 +385,5 @@ class Training:
         self._train_final(all_dir, str(self.config.trained_model_path))
         logger.info(f"Final model saved to {self.config.trained_model_path}")
 
-    def _compile_model_for_model(self, model: tf.keras.Model, strategy=None):
-        if strategy:
-            with strategy.scope():
-                model.compile(
-                    optimizer=tf.keras.optimizers.Adam(
-                        learning_rate=self.config.params_learning_rate
-                    ),
-                    loss=tf.keras.losses.CategoricalCrossentropy(),
-                    metrics=["accuracy"]
-                )
-        else:
-            model.compile(
-                optimizer=tf.keras.optimizers.Adam(
-                    learning_rate=self.config.params_learning_rate
-                ),
-                loss=tf.keras.losses.CategoricalCrossentropy(),
-                metrics=["accuracy"]
-            )
+    # _compile_model_for_model removed — use _build_and_compile() instead
 
