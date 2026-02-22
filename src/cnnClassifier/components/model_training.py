@@ -15,22 +15,48 @@ class Training:
     def _enable_eager_compat():
         tf.config.run_functions_eagerly(False)
 
-    def _compile_model(self):
-        self.model.compile(
-            optimizer=tf.keras.optimizers.Adam(
-                learning_rate=self.config.params_learning_rate
-            ),
-            loss=tf.keras.losses.CategoricalCrossentropy(),
-            metrics=["accuracy"]
-        )
+    @staticmethod
+    def _get_distribution_strategy():
+        """Return MirroredStrategy if multiple GPUs available, else default."""
+        gpus = tf.config.list_physical_devices('GPU')
+        num_gpus = len(gpus)
+        
+        if num_gpus > 1:
+            logger.info(f"Detected {num_gpus} GPUs. Using MirroredStrategy for distributed training.")
+            return tf.distribute.MirroredStrategy()
+        elif num_gpus == 1:
+            logger.info("Single GPU detected. Using default strategy.")
+            return None
+        else:
+            logger.warning("No GPU detected. Training on CPU (slow).")
+            return None
 
-    def get_base_model(self):
+    def _compile_model(self, strategy=None):
+        if strategy:
+            with strategy.scope():
+                self.model.compile(
+                    optimizer=tf.keras.optimizers.Adam(
+                        learning_rate=self.config.params_learning_rate
+                    ),
+                    loss=tf.keras.losses.CategoricalCrossentropy(),
+                    metrics=["accuracy"]
+                )
+        else:
+            self.model.compile(
+                optimizer=tf.keras.optimizers.Adam(
+                    learning_rate=self.config.params_learning_rate
+                ),
+                loss=tf.keras.losses.CategoricalCrossentropy(),
+                metrics=["accuracy"]
+            )
+
+    def get_base_model(self, strategy=None):
         """Load a fresh copy of the compiled base model."""
         self.model = tf.keras.models.load_model(
             self.config.updated_base_model_path,
             compile=False
         )
-        self._compile_model()
+        self._compile_model(strategy=strategy)
 
     @staticmethod
     def save_model(path: Path, model: tf.keras.Model):
@@ -172,6 +198,7 @@ class Training:
         resume_model_path = model_save_path.replace(".h5", "_resume.keras")
         history_path = model_save_path.replace(".h5", "_history.csv")
         completed_epochs = self._count_completed_epochs(history_path)
+        strategy = self._get_distribution_strategy()
 
         if completed_epochs >= self.config.params_epochs and os.path.exists(resume_model_path):
             logger.info(
@@ -179,7 +206,7 @@ class Training:
                 f"Finalizing from checkpoint: {resume_model_path}"
             )
             finalized_model = tf.keras.models.load_model(resume_model_path, compile=False)
-            self._compile_model_for_model(finalized_model)
+            self._compile_model_for_model(finalized_model, strategy=strategy)
             self.save_model(path=model_save_path, model=finalized_model)
             return
 
@@ -192,9 +219,9 @@ class Training:
                 f"{resume_model_path}"
             )
             self.model = tf.keras.models.load_model(resume_model_path, compile=False)
-            self._compile_model()
+            self._compile_model(strategy=strategy)
         else:
-            self.get_base_model()
+            self.get_base_model(strategy=strategy)
 
         val_datagen = tf.keras.preprocessing.image.ImageDataGenerator(
             rescale=1./255
@@ -246,6 +273,7 @@ class Training:
         resume_model_path = model_save_path.replace(".h5", "_resume.keras")
         history_path = model_save_path.replace(".h5", "_history.csv")
         completed_epochs = self._count_completed_epochs(history_path)
+        strategy = self._get_distribution_strategy()
 
         if completed_epochs >= self.config.params_epochs and os.path.exists(resume_model_path):
             logger.info(
@@ -253,7 +281,7 @@ class Training:
                 f"Finalizing from checkpoint: {resume_model_path}"
             )
             finalized_model = tf.keras.models.load_model(resume_model_path, compile=False)
-            self._compile_model_for_model(finalized_model)
+            self._compile_model_for_model(finalized_model, strategy=strategy)
             self.save_model(path=model_save_path, model=finalized_model)
             return
 
@@ -266,9 +294,9 @@ class Training:
                 f"{resume_model_path}"
             )
             self.model = tf.keras.models.load_model(resume_model_path, compile=False)
-            self._compile_model()
+            self._compile_model(strategy=strategy)
         else:
-            self.get_base_model()
+            self.get_base_model(strategy=strategy)
 
         split_kwargs = dict(rescale=1./255, validation_split=0.20)
 
@@ -353,12 +381,22 @@ class Training:
         self._train_final(all_dir, str(self.config.trained_model_path))
         logger.info(f"Final model saved to {self.config.trained_model_path}")
 
-    def _compile_model_for_model(self, model: tf.keras.Model):
-        model.compile(
-            optimizer=tf.keras.optimizers.Adam(
-                learning_rate=self.config.params_learning_rate
-            ),
-            loss=tf.keras.losses.CategoricalCrossentropy(),
-            metrics=["accuracy"]
-        )
+    def _compile_model_for_model(self, model: tf.keras.Model, strategy=None):
+        if strategy:
+            with strategy.scope():
+                model.compile(
+                    optimizer=tf.keras.optimizers.Adam(
+                        learning_rate=self.config.params_learning_rate
+                    ),
+                    loss=tf.keras.losses.CategoricalCrossentropy(),
+                    metrics=["accuracy"]
+                )
+        else:
+            model.compile(
+                optimizer=tf.keras.optimizers.Adam(
+                    learning_rate=self.config.params_learning_rate
+                ),
+                loss=tf.keras.losses.CategoricalCrossentropy(),
+                metrics=["accuracy"]
+            )
 
