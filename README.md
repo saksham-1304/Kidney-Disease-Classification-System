@@ -3,7 +3,7 @@
 **Deep Learning Pipeline with VGG16, K-Fold Cross-Validation, DVC, and MLflow**
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://python.org/)
-[![TensorFlow](https://img.shields.io/badge/TensorFlow-%E2%89%A5%202.12-FF6F00.svg)](https://tensorflow.org/)
+[![TensorFlow](https://img.shields.io/badge/TensorFlow-%E2%89%A5%202.16-FF6F00.svg)](https://tensorflow.org/)
 [![DVC](https://img.shields.io/badge/DVC-Pipeline-blue.svg)](https://dvc.org/)
 [![MLflow](https://img.shields.io/badge/MLflow-Tracking-blue.svg)](https://mlflow.org/)
 [![Flask](https://img.shields.io/badge/Flask-Web%20App-green.svg)](https://flask.palletsprojects.com/)
@@ -70,6 +70,44 @@ Input (224 x 224 x 3)
 **Optimizer:** Adam (LR=0.001, with ReduceLROnPlateau)
 **Loss:** Categorical Cross-Entropy
 **Callbacks:** EarlyStopping (patience=5), ReduceLROnPlateau (patience=3, factor=0.5)
+
+---
+
+## Model Performance
+
+5-fold stratified cross-validation on **12,446 CT images** (VGG16 + Dropout(0.5) head, Adam, augmentation enabled).
+
+### Aggregate Results
+
+| Metric | Mean | Std |
+|--------|------|-----|
+| Accuracy | **96.12%** | ±0.82% |
+| Loss | 0.1231 | ±0.0244 |
+| Macro Precision | 95.77% | ±0.88% |
+| Macro Recall | 94.77% | ±1.15% |
+| Macro F1 | **95.23%** | ±1.04% |
+
+### Per-Fold Breakdown
+
+| Fold | Accuracy | Loss | Macro F1 | Val Samples |
+|------|----------|------|----------|-------------|
+| 1 | 94.58% | 0.1713 | 93.28% | 2,491 |
+| 2 | 96.23% | 0.1116 | 95.39% | 2,491 |
+| 3 | **97.03%** | 0.1103 | **96.39%** | 2,489 |
+| 4 | 96.42% | 0.1164 | 95.66% | 2,488 |
+| 5 | 96.34% | 0.1057 | 95.42% | 2,487 |
+| **Mean** | **96.12%** | **0.1231** | **95.23%** | 12,446 total |
+
+### Per-Class Metrics (averaged across 5 folds)
+
+| Class | Precision | Recall | F1 |
+|-------|-----------|--------|----|
+| Cyst | 95.88% | 97.71% | 96.77% |
+| Normal | 97.05% | 97.73% | 97.39% |
+| Stone | 94.91% | 89.98% | 92.36% |
+| Tumor | 95.23% | 93.65% | 94.38% |
+
+> Stone has the lowest recall (89.98%) due to its smaller support (~275 val images per fold). Normal achieves the highest F1 (97.39%).
 
 ---
 
@@ -323,7 +361,7 @@ docker run -p 8080:8080 -v $(pwd)/model:/app/model kidney-classifier
 
 | Category | Technology |
 |----------|-----------|
-| Deep Learning | TensorFlow/Keras, VGG16 (Transfer Learning) |
+| Deep Learning | TensorFlow ≥2.16 / Keras 3, VGG16 (Transfer Learning) |
 | Data | Pandas, NumPy, Matplotlib, Seaborn |
 | Web | Flask, Flask-CORS, Bootstrap 4, jQuery |
 | MLOps | MLflow, DVC |

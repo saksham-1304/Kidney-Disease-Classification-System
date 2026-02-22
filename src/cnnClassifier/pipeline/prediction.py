@@ -10,7 +10,7 @@ CLASS_NAMES = ["Cyst", "Normal", "Stone", "Tumor"]
 class PredictionPipeline:
     def __init__(self, filename):
         self.filename = filename
-        self.model = load_model(os.path.join("model", "model.h5"))
+        self.model = load_model(os.path.join("model", "model.h5"), compile=False)
 
     def predict(self):
         imagename = self.filename
